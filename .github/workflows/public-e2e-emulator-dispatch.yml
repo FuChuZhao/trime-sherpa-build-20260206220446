@@ -133,7 +133,7 @@ jobs:
             -noaudio
             -no-boot-anim
           script: |
-            set -euo pipefail
+            set -eu
             cd source
             ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
 
