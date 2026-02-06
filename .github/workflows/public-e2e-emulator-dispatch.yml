@@ -114,7 +114,7 @@ jobs:
             exit 1
           fi
           echo "sdk.dir=$SDK_DIR" > local.properties
-          CMAKE_VERSION=3.22.1 ./gradlew :app:assembleDebug
+          BUILD_ABI=x86_64 CMAKE_VERSION=3.22.1 ./gradlew :app:assembleDebug
 
       - name: Run E2E on cloud emulator
         uses: reactivecircus/android-emulator-runner@v2
