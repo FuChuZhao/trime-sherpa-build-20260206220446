@@ -28,9 +28,9 @@ on:
         default: false
         type: boolean
       input_component:
-        description: "Optional. e.g. com.android.settings/.Settings"
+        description: "Input activity component for IME scenario"
         required: false
-        default: ""
+        default: "com.osfans.trime.debug/com.osfans.trime.ui.e2e.E2eInputActivity"
         type: string
       focus_x:
         description: "Optional input focus x"
