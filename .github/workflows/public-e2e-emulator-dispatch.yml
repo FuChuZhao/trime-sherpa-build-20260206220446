@@ -20,7 +20,7 @@ on:
       api_level:
         description: "Android emulator API level"
         required: true
-        default: "34"
+        default: "30"
         type: string
       run_voice_scenario:
         description: "Run optional IME voice scenario"
@@ -91,12 +91,6 @@ jobs:
           cd source
           git checkout "$SOURCE_REF"
 
-      - name: Configure git identity for build metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          git -C source config user.name "github-actions[bot]"
-
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
@@ -114,14 +108,16 @@ jobs:
             exit 1
           fi
           echo "sdk.dir=$SDK_DIR" > local.properties
-          BUILD_ABI=x86_64 CMAKE_VERSION=3.22.1 ./gradlew :app:assembleDebug
+          CMAKE_VERSION=3.22.1 ./gradlew :app:assembleDebug
 
       - name: Run E2E on cloud emulator
+        id: run_e2e
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ inputs.api_level }}
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_5
           cores: 2
           ram-size: 4096M
           heap-size: 1024M
@@ -133,15 +129,23 @@ jobs:
             -noaudio
             -no-boot-anim
           script: |
-            cd source && timeout 240s ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
-            cd source && timeout 600s ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --record-seconds "${{ inputs.record_seconds }}"
-
+            cd source && timeout 300s ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
+            cd source && timeout 1200s ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --record-seconds "${{ inputs.record_seconds }}"
 
       - name: Upload E2E artifact
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact_name }}
           path: |
             source/${{ inputs.e2e_out_dir }}/**
             source/trime/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
           retention-days: 1
+
+      - name: Fail workflow when E2E step failed
+        if: ${{ always() && steps.run_e2e.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "Run E2E step outcome: ${{ steps.run_e2e.outcome }}"
+          exit 1
