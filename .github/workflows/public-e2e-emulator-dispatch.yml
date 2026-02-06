@@ -133,29 +133,31 @@ jobs:
             -noaudio
             -no-boot-anim
           script: |
-            set -eu
-            cd source
-            ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
+            bash -lc '''
+              set -euo pipefail
+              cd source
+              ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
 
-            ARGS=(
-              --serial emulator-5554
-              --package com.osfans.trime.debug
-              --activity com.osfans.trime.ui.main.MainActivity
-              --out-dir "${{ inputs.e2e_out_dir }}"
-            )
-
-            if [[ "${{ inputs.run_voice_scenario }}" == "true" ]]; then
-              ARGS+=(
-                --input-component "${{ inputs.input_component }}"
-                --focus-x "${{ inputs.focus_x }}"
-                --focus-y "${{ inputs.focus_y }}"
-                --voice-key-x "${{ inputs.voice_key_x }}"
-                --voice-key-y "${{ inputs.voice_key_y }}"
-                --record-seconds "${{ inputs.record_seconds }}"
+              ARGS=(
+                --serial emulator-5554
+                --package com.osfans.trime.debug
+                --activity com.osfans.trime.ui.main.MainActivity
+                --out-dir "${{ inputs.e2e_out_dir }}"
               )
-            fi
 
-            ./tool/e2e/run-trime-e2e.sh "${ARGS[@]}"
+              if [[ "${{ inputs.run_voice_scenario }}" == "true" ]]; then
+                ARGS+=(
+                  --input-component "${{ inputs.input_component }}"
+                  --focus-x "${{ inputs.focus_x }}"
+                  --focus-y "${{ inputs.focus_y }}"
+                  --voice-key-x "${{ inputs.voice_key_x }}"
+                  --voice-key-y "${{ inputs.voice_key_y }}"
+                  --record-seconds "${{ inputs.record_seconds }}"
+                )
+              fi
+
+              ./tool/e2e/run-trime-e2e.sh "${ARGS[@]}"
+            '''
 
       - name: Upload E2E artifact
         uses: actions/upload-artifact@v4
