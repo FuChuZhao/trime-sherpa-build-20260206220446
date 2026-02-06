@@ -91,6 +91,12 @@ jobs:
           cd source
           git checkout "$SOURCE_REF"
 
+      - name: Configure git identity for build metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C source config user.name "github-actions[bot]"
+
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
