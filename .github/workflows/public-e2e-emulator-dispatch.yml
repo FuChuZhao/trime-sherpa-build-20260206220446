@@ -1,0 +1,161 @@
+name: public-e2e-emulator-dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "SOURCE_REPO ref/branch/tag/commit"
+        required: true
+        type: string
+      artifact_name:
+        description: "E2E artifact name"
+        required: true
+        default: "e2e-output"
+        type: string
+      e2e_out_dir:
+        description: "Output dir in SOURCE_REPO workspace"
+        required: true
+        default: "artifacts/e2e/ci"
+        type: string
+      api_level:
+        description: "Android emulator API level"
+        required: true
+        default: "34"
+        type: string
+      run_voice_scenario:
+        description: "Run optional IME voice scenario"
+        required: true
+        default: false
+        type: boolean
+      input_component:
+        description: "Optional. e.g. com.android.settings/.Settings"
+        required: false
+        default: ""
+        type: string
+      focus_x:
+        description: "Optional input focus x"
+        required: false
+        default: ""
+        type: string
+      focus_y:
+        description: "Optional input focus y"
+        required: false
+        default: ""
+        type: string
+      voice_key_x:
+        description: "Optional voice key x"
+        required: false
+        default: ""
+        type: string
+      voice_key_y:
+        description: "Optional voice key y"
+        required: false
+        default: ""
+        type: string
+      record_seconds:
+        description: "Optional record duration seconds"
+        required: false
+        default: "3"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout build repo
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SOURCE_REPO_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Clone private source repo
+        shell: bash
+        env:
+          SOURCE_REPO: ${{ secrets.SOURCE_REPO }}
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          set -euo pipefail
+          test -n "$SOURCE_REPO"
+          git clone "git@github.com:${SOURCE_REPO}.git" source
+          cd source
+          git checkout "$SOURCE_REF"
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source/trime
+          SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [[ -z "$SDK_DIR" ]]; then
+            echo "ANDROID_SDK_ROOT/ANDROID_HOME is not set" >&2
+            exit 1
+          fi
+          echo "sdk.dir=$SDK_DIR" > local.properties
+          CMAKE_VERSION=3.22.1 ./gradlew :app:assembleDebug
+
+      - name: Run E2E on cloud emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.api_level }}
+          arch: x86_64
+          profile: pixel_6
+          cores: 2
+          ram-size: 4096M
+          heap-size: 1024M
+          disk-size: 4096M
+          disable-animations: true
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -noaudio
+            -no-boot-anim
+          script: |
+            set -euo pipefail
+            cd source
+            ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
+
+            ARGS=(
+              --serial emulator-5554
+              --package com.osfans.trime.debug
+              --activity com.osfans.trime.ui.main.MainActivity
+              --out-dir "${{ inputs.e2e_out_dir }}"
+            )
+
+            if [[ "${{ inputs.run_voice_scenario }}" == "true" ]]; then
+              ARGS+=(
+                --input-component "${{ inputs.input_component }}"
+                --focus-x "${{ inputs.focus_x }}"
+                --focus-y "${{ inputs.focus_y }}"
+                --voice-key-x "${{ inputs.voice_key_x }}"
+                --voice-key-y "${{ inputs.voice_key_y }}"
+                --record-seconds "${{ inputs.record_seconds }}"
+              )
+            fi
+
+            ./tool/e2e/run-trime-e2e.sh "${ARGS[@]}"
+
+      - name: Upload E2E artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            source/${{ inputs.e2e_out_dir }}/**
+            source/trime/app/build/outputs/apk/debug/*.apk
+          retention-days: 1
