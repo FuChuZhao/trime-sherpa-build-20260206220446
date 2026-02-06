@@ -133,7 +133,7 @@ jobs:
             -noaudio
             -no-boot-anim
           script: |
-            bash -lc '''
+            bash -lc '
               set -euo pipefail
               cd source
               ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
@@ -157,7 +157,7 @@ jobs:
               fi
 
               ./tool/e2e/run-trime-e2e.sh "${ARGS[@]}"
-            '''
+            '
 
       - name: Upload E2E artifact
         uses: actions/upload-artifact@v4
