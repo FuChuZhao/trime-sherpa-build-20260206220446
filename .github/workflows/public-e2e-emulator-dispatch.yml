@@ -134,8 +134,10 @@ jobs:
             -gpu swiftshader_indirect
             -no-boot-anim
           script: |
-            cd source && timeout 300s ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
-            cd source && timeout 1200s ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --record-seconds "${{ inputs.record_seconds }}"
+            set -euo pipefail
+            cd source
+            timeout --signal=INT --kill-after=20s 300s ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug
+            timeout --signal=INT --kill-after=45s 1500s ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --record-seconds "${{ inputs.record_seconds }}"
 
       - name: Upload E2E artifact
         if: ${{ always() }}
