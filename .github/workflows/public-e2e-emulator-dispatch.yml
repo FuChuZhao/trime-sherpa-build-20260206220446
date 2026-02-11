@@ -65,7 +65,7 @@ on:
       record_seconds:
         description: "Optional record duration seconds"
         required: false
-        default: "3"
+        default: "1"
         type: string
       e2e_timeout_seconds:
         description: "Timeout for run-trime-e2e.sh command"
