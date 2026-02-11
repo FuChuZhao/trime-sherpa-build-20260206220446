@@ -72,6 +72,16 @@ on:
         required: false
         default: "4800"
         type: string
+      emulator_options:
+        description: "Emulator options passed to android-emulator-runner"
+        required: false
+        default: "-no-window -gpu swiftshader_indirect -no-boot-anim"
+        type: string
+      collect_audio_diagnostics:
+        description: "Collect host audio diagnostics"
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -118,6 +128,23 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Collect host audio diagnostics
+        if: ${{ always() && inputs.collect_audio_diagnostics }}
+        shell: bash
+        run: |
+          set +e
+          mkdir -p host-audio-diagnostics
+          date -Iseconds > host-audio-diagnostics/timestamp.txt
+          uname -a > host-audio-diagnostics/uname.txt
+          printenv | grep -E '^(AUDIO|PULSE|QEMU_AUDIO|ALSA|PIPEWIRE)' | sort > host-audio-diagnostics/env-audio.txt || true
+          ls -la /dev/snd > host-audio-diagnostics/dev-snd.txt 2>&1 || true
+          cat /proc/asound/cards > host-audio-diagnostics/proc-asound-cards.txt 2>&1 || true
+          cat /proc/asound/devices > host-audio-diagnostics/proc-asound-devices.txt 2>&1 || true
+          (command -v arecord && arecord -l) > host-audio-diagnostics/arecord-l.txt 2>&1 || true
+          (command -v aplay && aplay -l) > host-audio-diagnostics/aplay-l.txt 2>&1 || true
+          (command -v pactl && pactl info) > host-audio-diagnostics/pactl-info.txt 2>&1 || true
+          (command -v pw-cli && pw-cli info 0) > host-audio-diagnostics/pipewire-info.txt 2>&1 || true
+
       - name: Build debug APK
         shell: bash
         run: |
@@ -144,10 +171,7 @@ jobs:
           heap-size: 1024M
           disk-size: 4096M
           disable-animations: true
-          emulator-options: >-
-            -no-window
-            -gpu swiftshader_indirect
-            -no-boot-anim
+          emulator-options: ${{ inputs.emulator_options }}
           script: |
             timeout --signal=INT --kill-after=30s 600s bash -lc 'cd source && ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug' || exit $?
             timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --record-seconds "${{ inputs.record_seconds }}" --run-fake-transcript-check "${{ inputs.run_fake_transcript_check }}" --fake-transcript-text "${{ inputs.fake_transcript_text }}"' || exit $?
@@ -160,6 +184,7 @@ jobs:
           path: |
             source/${{ inputs.e2e_out_dir }}/**
             source/trime/app/build/outputs/apk/debug/*.apk
+            host-audio-diagnostics/**
           if-no-files-found: warn
           retention-days: 1
 
