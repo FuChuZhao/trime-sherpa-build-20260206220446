@@ -174,7 +174,11 @@ jobs:
         run: |
           set +e
           mkdir -p host-audio-diagnostics
+          if ! command -v pulseaudio >/dev/null 2>&1 || ! command -v pactl >/dev/null 2>&1; then
+            (sudo apt-get update -y && sudo apt-get install -y pulseaudio pulseaudio-utils) > host-audio-diagnostics/apt-install-pulseaudio.txt 2>&1 || true
+          fi
           (command -v pulseaudio) > host-audio-diagnostics/pulseaudio-bin.txt 2>&1 || true
+          (command -v pactl) > host-audio-diagnostics/pactl-bin.txt 2>&1 || true
           pulseaudio --check || pulseaudio --start --daemonize=yes --exit-idle-time=-1 >/dev/null 2>&1 || true
           sleep 1
           (command -v pactl && pactl info) > host-audio-diagnostics/pactl-info-after-bootstrap.txt 2>&1 || true
