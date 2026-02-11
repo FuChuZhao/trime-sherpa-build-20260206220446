@@ -182,6 +182,17 @@ jobs:
           pulseaudio --check || pulseaudio --start --daemonize=yes --exit-idle-time=-1 >/dev/null 2>&1 || true
           sleep 1
           (command -v pactl && pactl info) > host-audio-diagnostics/pactl-info-after-bootstrap.txt 2>&1 || true
+          PA_SERVER=$(sed -n 's/^Server String: //p' host-audio-diagnostics/pactl-info-after-bootstrap.txt | head -n 1)
+          if [[ -n "$PA_SERVER" ]]; then
+            echo "$PA_SERVER" > host-audio-diagnostics/pulse-server.txt
+            echo "QEMU_PA_SERVER=$PA_SERVER" >> "$GITHUB_ENV"
+            echo "PULSE_SERVER=unix:$PA_SERVER" >> "$GITHUB_ENV"
+          fi
+          if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+            echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
+          else
+            echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+          fi
           (command -v pactl && pactl list short sinks) > host-audio-diagnostics/pactl-sinks-after-bootstrap.txt 2>&1 || true
           (command -v pactl && pactl list short sources) > host-audio-diagnostics/pactl-sources-after-bootstrap.txt 2>&1 || true
           (command -v pactl && pactl load-module module-null-sink sink_name=ci_sink channels=1 rate=16000 sink_properties=device.description=ci_sink) > host-audio-diagnostics/pactl-load-null-sink.txt 2>&1 || true
