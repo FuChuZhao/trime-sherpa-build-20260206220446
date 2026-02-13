@@ -219,7 +219,7 @@ jobs:
           emulator-options: ${{ inputs.emulator_options }}
           script: |
             timeout --signal=INT --kill-after=30s 600s bash -lc 'cd source && ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug' || exit $?
-            timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --record-seconds "${{ inputs.record_seconds }}" --run-fake-transcript-check "${{ inputs.run_fake_transcript_check }}" --fake-transcript-text "${{ inputs.fake_transcript_text }}"' || exit $?
+            timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --voice-trigger-mode tap --voice-trigger-gesture long-press --voice-long-press-ms 720 --record-seconds "${{ inputs.record_seconds }}" --run-fake-transcript-check "${{ inputs.run_fake_transcript_check }}" --fake-transcript-text "${{ inputs.fake_transcript_text }}"' || exit $?
 
       - name: Upload E2E artifact
         if: ${{ always() }}
