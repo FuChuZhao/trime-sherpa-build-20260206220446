@@ -166,7 +166,7 @@ jobs:
             exit 1
           fi
           echo "sdk.dir=$SDK_DIR" > local.properties
-          CMAKE_VERSION=3.22.1 ./gradlew :app:assembleDebug
+          timeout --signal=INT --kill-after=120s 2400s bash -lc 'CMAKE_VERSION=3.22.1 ./gradlew --no-daemon --stacktrace --console=plain :app:assembleDebug'
 
       - name: Bootstrap host PulseAudio (optional)
         if: ${{ always() && inputs.collect_audio_diagnostics && inputs.bootstrap_pulseaudio }}
