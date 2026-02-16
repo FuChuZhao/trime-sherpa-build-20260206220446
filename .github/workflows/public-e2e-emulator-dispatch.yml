@@ -42,6 +42,11 @@ on:
         required: false
         default: false
         type: boolean
+      fail_on_system_anr:
+        description: "Fail immediately when system ANR dialog appears"
+        required: false
+        default: false
+        type: boolean
       fake_transcript_text:
         description: "Optional fake transcript text"
         required: false
@@ -233,6 +238,7 @@ jobs:
           INPUT_RUN_VOICE_SCENARIO: ${{ inputs.run_voice_scenario }}
           INPUT_RUN_FAKE_TRANSCRIPT_CHECK: ${{ inputs.run_fake_transcript_check }}
           INPUT_SKIP_ASR_SETTINGS: ${{ inputs.skip_asr_settings }}
+          INPUT_FAIL_ON_SYSTEM_ANR: ${{ inputs.fail_on_system_anr }}
           INPUT_ENFORCE_KEYBOARD_VISIBLE: ${{ inputs.enforce_keyboard_visible }}
           INPUT_KEYBOARD_MIN_VISIBLE_HEIGHT_PX: ${{ inputs.keyboard_min_visible_height_px }}
           INPUT_KEYBOARD_MIN_VISIBLE_RATIO: ${{ inputs.keyboard_min_visible_ratio }}
@@ -242,6 +248,7 @@ jobs:
           run_voice="${INPUT_RUN_VOICE_SCENARIO}"
           run_fake="${INPUT_RUN_FAKE_TRANSCRIPT_CHECK}"
           skip_asr_settings="${INPUT_SKIP_ASR_SETTINGS}"
+          fail_on_system_anr="${INPUT_FAIL_ON_SYSTEM_ANR}"
           enforce_visible="${INPUT_ENFORCE_KEYBOARD_VISIBLE}"
           min_height="${INPUT_KEYBOARD_MIN_VISIBLE_HEIGHT_PX}"
           min_ratio="${INPUT_KEYBOARD_MIN_VISIBLE_RATIO}"
@@ -253,6 +260,7 @@ jobs:
               run_voice="false"
               run_fake="false"
               skip_asr_settings="true"
+              fail_on_system_anr="true"
               enforce_visible="true"
               ;;
             *)
@@ -266,6 +274,7 @@ jobs:
             echo "E2E_RUN_VOICE_SCENARIO=${run_voice}"
             echo "E2E_RUN_FAKE_TRANSCRIPT_CHECK=${run_fake}"
             echo "E2E_SKIP_ASR_SETTINGS=${skip_asr_settings}"
+            echo "E2E_FAIL_ON_SYSTEM_ANR=${fail_on_system_anr}"
             echo "E2E_ENFORCE_KEYBOARD_VISIBLE=${enforce_visible}"
             echo "E2E_KEYBOARD_MIN_VISIBLE_HEIGHT_PX=${min_height}"
             echo "E2E_KEYBOARD_MIN_VISIBLE_RATIO=${min_ratio}"
@@ -277,6 +286,7 @@ jobs:
           run_voice_scenario=${run_voice}
           run_fake_transcript_check=${run_fake}
           skip_asr_settings=${skip_asr_settings}
+          fail_on_system_anr=${fail_on_system_anr}
           enforce_keyboard_visible=${enforce_visible}
           keyboard_min_visible_height_px=${min_height}
           keyboard_min_visible_ratio=${min_ratio}
@@ -300,7 +310,7 @@ jobs:
           emulator-options: ${{ inputs.emulator_options }}
           script: |
             timeout --signal=INT --kill-after=30s 600s bash -lc 'cd source && ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug' || exit $?
-            timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --voice-trigger-mode broadcast --record-seconds "${{ inputs.record_seconds }}" --run-voice-scenario "${E2E_RUN_VOICE_SCENARIO}" --run-fake-transcript-check "${E2E_RUN_FAKE_TRANSCRIPT_CHECK}" --skip-asr-settings "${E2E_SKIP_ASR_SETTINGS}" --fake-transcript-text "${{ inputs.fake_transcript_text }}" --enforce-keyboard-visible "${E2E_ENFORCE_KEYBOARD_VISIBLE}" --keyboard-min-visible-height-px "${E2E_KEYBOARD_MIN_VISIBLE_HEIGHT_PX}" --keyboard-min-visible-ratio "${E2E_KEYBOARD_MIN_VISIBLE_RATIO}"' || exit $?
+            timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --voice-trigger-mode broadcast --record-seconds "${{ inputs.record_seconds }}" --run-voice-scenario "${E2E_RUN_VOICE_SCENARIO}" --run-fake-transcript-check "${E2E_RUN_FAKE_TRANSCRIPT_CHECK}" --skip-asr-settings "${E2E_SKIP_ASR_SETTINGS}" --fail-on-system-anr "${E2E_FAIL_ON_SYSTEM_ANR}" --fake-transcript-text "${{ inputs.fake_transcript_text }}" --enforce-keyboard-visible "${E2E_ENFORCE_KEYBOARD_VISIBLE}" --keyboard-min-visible-height-px "${E2E_KEYBOARD_MIN_VISIBLE_HEIGHT_PX}" --keyboard-min-visible-ratio "${E2E_KEYBOARD_MIN_VISIBLE_RATIO}"' || exit $?
 
       - name: Upload E2E artifact
         if: ${{ always() }}
