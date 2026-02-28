@@ -42,6 +42,11 @@ on:
         required: false
         default: false
         type: boolean
+      asr_runtime_backend:
+        description: "ASR runtime backend override"
+        required: false
+        default: "default"
+        type: string
       fail_on_system_anr:
         description: "Fail immediately when system ANR dialog appears"
         required: false
@@ -286,6 +291,7 @@ jobs:
           run_voice_scenario=${run_voice}
           run_fake_transcript_check=${run_fake}
           skip_asr_settings=${skip_asr_settings}
+          asr_runtime_backend=${{ inputs.asr_runtime_backend }}
           fail_on_system_anr=${fail_on_system_anr}
           enforce_keyboard_visible=${enforce_visible}
           keyboard_min_visible_height_px=${min_height}
@@ -310,7 +316,7 @@ jobs:
           emulator-options: ${{ inputs.emulator_options }}
           script: |
             timeout --signal=INT --kill-after=30s 600s bash -lc 'cd source && ./tool/e2e/install-debug-apk.sh --serial emulator-5554 --package com.osfans.trime.debug' || exit $?
-            timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --voice-trigger-mode broadcast --record-seconds "${{ inputs.record_seconds }}" --run-voice-scenario "${E2E_RUN_VOICE_SCENARIO}" --run-fake-transcript-check "${E2E_RUN_FAKE_TRANSCRIPT_CHECK}" --skip-asr-settings "${E2E_SKIP_ASR_SETTINGS}" --fail-on-system-anr "${E2E_FAIL_ON_SYSTEM_ANR}" --fake-transcript-text "${{ inputs.fake_transcript_text }}" --enforce-keyboard-visible "${E2E_ENFORCE_KEYBOARD_VISIBLE}" --keyboard-min-visible-height-px "${E2E_KEYBOARD_MIN_VISIBLE_HEIGHT_PX}" --keyboard-min-visible-ratio "${E2E_KEYBOARD_MIN_VISIBLE_RATIO}"' || exit $?
+            timeout --signal=INT --kill-after=120s "${{ inputs.e2e_timeout_seconds }}"s bash -lc 'cd source && ./tool/e2e/run-trime-e2e.sh --serial emulator-5554 --package com.osfans.trime.debug --activity com.osfans.trime.ui.main.MainActivity --out-dir "${{ inputs.e2e_out_dir }}" --input-component "${{ inputs.input_component }}" --focus-x "${{ inputs.focus_x }}" --focus-y "${{ inputs.focus_y }}" --voice-key-x "${{ inputs.voice_key_x }}" --voice-key-y "${{ inputs.voice_key_y }}" --voice-trigger-mode broadcast --record-seconds "${{ inputs.record_seconds }}" --run-voice-scenario "${E2E_RUN_VOICE_SCENARIO}" --run-fake-transcript-check "${E2E_RUN_FAKE_TRANSCRIPT_CHECK}" --skip-asr-settings "${E2E_SKIP_ASR_SETTINGS}" --asr-runtime-backend "${{ inputs.asr_runtime_backend }}" --fail-on-system-anr "${E2E_FAIL_ON_SYSTEM_ANR}" --fake-transcript-text "${{ inputs.fake_transcript_text }}" --enforce-keyboard-visible "${E2E_ENFORCE_KEYBOARD_VISIBLE}" --keyboard-min-visible-height-px "${E2E_KEYBOARD_MIN_VISIBLE_HEIGHT_PX}" --keyboard-min-visible-ratio "${E2E_KEYBOARD_MIN_VISIBLE_RATIO}"' || exit $?
 
       - name: Upload E2E artifact
         if: ${{ always() }}
